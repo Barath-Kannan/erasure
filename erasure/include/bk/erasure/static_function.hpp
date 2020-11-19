@@ -37,7 +37,7 @@ struct non_relocatable_function_policy
 
     using call_policy =
         policies::non_trivial_call_policy<
-            policies::exception_specification::no_except,
+            policies::exception_specification::throwing,
             policies::function_pointer_lookup::inplace>;
 
     using callable_checking_policy = policies::assert_callable_checking_policy;
@@ -62,7 +62,7 @@ struct unique_function_policy
 
     using call_policy =
         policies::non_trivial_call_policy<
-            policies::exception_specification::no_except,
+            policies::exception_specification::throwing,
             policies::function_pointer_lookup::inplace>;
 
     using callable_checking_policy = policies::assert_callable_checking_policy;
@@ -101,7 +101,7 @@ struct pointer_table_function_policy
 
     using call_policy =
         policies::non_trivial_call_policy<
-            policies::exception_specification::no_except,
+            policies::exception_specification::throwing,
             policies::function_pointer_lookup::pointer_table>;
 
     using callable_checking_policy = policies::assert_callable_checking_policy;
@@ -115,7 +115,7 @@ struct trivial_non_relocatable_function_policy
             policies::rebindability::rebindable>;
 
     using destructor_policy = policies::trivial_destructor_policy;
-    using call_policy = policies::trivial_call_policy<policies::exception_specification::no_except>;
+    using call_policy = policies::trivial_call_policy<policies::exception_specification::throwing>;
     using callable_checking_policy = policies::assert_callable_checking_policy;
 };
 
@@ -223,7 +223,7 @@ public:
         return *this;
     }
 
-    R operator()(Args... args) noexcept((is_no_except_callable && is_no_except_callable_checkable))
+    R operator()(Args... args) const noexcept((is_no_except_callable && is_no_except_callable_checkable))
     {
         auto callable = call_policy::get_call();
         callable_checking_policy::check(callable);

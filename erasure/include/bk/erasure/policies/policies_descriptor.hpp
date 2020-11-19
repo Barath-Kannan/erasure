@@ -13,6 +13,7 @@
 #include "bk/erasure/policies/null_policies.hpp"
 #include "bk/erasure/policies/type_id_policy.hpp"
 
+#include <boost/callable_traits/is_noexcept.hpp>
 #include <boost/mp11.hpp>
 #include <boost/type_traits/detected_or.hpp>
 
@@ -93,7 +94,8 @@ public:
     };
 
     struct policy_holder
-        : private destructor_policy
+        : bits::pre_destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>
+        , private destructor_policy
         , private copy_policy
         , private move_policy
         , private type_id_policy
@@ -110,10 +112,12 @@ public:
         friend move_policy;
         friend type_id_policy;
 
+        using pre_destroy_behaviour = bits::pre_destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>;
         using copy_behaviour = bits::copy_behaviour<policy_holder, is_copyable, is_trivially_copyable, is_no_exceptcopyable>;
         using move_behaviour = bits::move_behaviour<policy_holder, is_moveable, is_trivially_moveable, is_no_except_moveable>;
         using destroy_behaviour = bits::destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>;
 
+        friend pre_destroy_behaviour;
         friend copy_behaviour;
         friend move_behaviour;
         friend destroy_behaviour;
@@ -213,7 +217,10 @@ public:
     static constexpr bool is_rebindable = binding_policy::rebindability == policies::rebindability::rebindable;
 
     using call_signature_type = bits::call_signature<signature, policy::call_policy::exception_policy>;
-    static constexpr bool is_no_except_callable = policy::call_policy::exception_policy == policies::exception_specification::no_except;
+
+    static constexpr bool is_no_except_callable = 
+        policy::call_policy::exception_policy == policies::exception_specification::no_except ||
+        boost::callable_traits::is_noexcept_v<signature>;
 
     static constexpr bool is_copyable = !std::is_same_v<copy_policy_wrapper, non_copyable_policy>;
     static constexpr bool is_moveable = !std::is_same_v<move_policy_wrapper, non_moveable_policy>;
@@ -248,7 +255,8 @@ public:
     using data_holder = std::conditional_t<max_size != 0, sized_data_holder, empty_data_holder>;
 
     struct policy_holder
-        : private destructor_policy
+        : bits::pre_destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>
+        , private destructor_policy
         , private copy_policy
         , private move_policy
         , private call_policy
@@ -265,10 +273,12 @@ public:
         friend move_policy;
         friend call_policy;
 
+        using pre_destroy_behaviour = bits::pre_destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>;
         using copy_behaviour = bits::copy_behaviour<policy_holder, is_copyable, is_trivially_copyable, is_no_exceptcopyable>;
         using move_behaviour = bits::move_behaviour<policy_holder, is_moveable, is_trivially_moveable, is_no_except_moveable>;
         using destroy_behaviour = bits::destroy_behaviour<policy_holder, is_trivially_destroyable, is_no_except_destroyable>;
 
+        friend pre_destroy_behaviour;
         friend copy_behaviour;
         friend move_behaviour;
         friend destroy_behaviour;
@@ -296,6 +306,10 @@ public:
             // this is the only thing that is actually used for checking
             // (as its compulsory to have a type id in an any)
             call_policy::zero_call();
+            if constexpr (is_nullable)
+            {
+                destructor_policy::zero_destructor();
+            }
             switch_holder::zero_switch_function();
             pointer_table_holder::zero_pointer_table();
         }

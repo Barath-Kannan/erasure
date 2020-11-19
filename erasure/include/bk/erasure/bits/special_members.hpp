@@ -112,6 +112,43 @@ struct move_behaviour<PolicyHolder, true, false, NoExcept>
 };
 
 template <typename PolicyHolder, bool TriviallyDestroyable, bool NoExceptCopyable>
+struct pre_destroy_behaviour;
+
+template <typename PolicyHolder>
+struct pre_destroy_behaviour<PolicyHolder, true, true>
+{
+    constexpr pre_destroy_behaviour() noexcept = default;
+    constexpr pre_destroy_behaviour(const pre_destroy_behaviour&) noexcept = default;
+    constexpr pre_destroy_behaviour(pre_destroy_behaviour&&) noexcept = default;
+    constexpr pre_destroy_behaviour& operator=(const pre_destroy_behaviour&) noexcept = default;
+    constexpr pre_destroy_behaviour& operator=(pre_destroy_behaviour&&) noexcept = default;
+    ~pre_destroy_behaviour() noexcept = default;
+};
+
+static_assert(std::is_trivial_v<pre_destroy_behaviour<void, true, true>>);
+
+template <typename PolicyHolder, bool NoExcept>
+struct pre_destroy_behaviour<PolicyHolder, false, NoExcept>
+{
+    constexpr pre_destroy_behaviour() noexcept = default;
+    constexpr pre_destroy_behaviour(const pre_destroy_behaviour&) noexcept = default;
+    constexpr pre_destroy_behaviour(pre_destroy_behaviour&&) noexcept = default;
+
+    constexpr pre_destroy_behaviour& operator=(const pre_destroy_behaviour&) noexcept 
+    {
+        static_cast<PolicyHolder&>(*this).destroy();
+        return *this;
+    }
+
+    constexpr pre_destroy_behaviour& operator=(pre_destroy_behaviour&&) noexcept 
+    {
+        static_cast<PolicyHolder&>(*this).destroy();
+        return *this;
+    }
+};
+
+
+template <typename PolicyHolder, bool TriviallyDestroyable, bool NoExceptCopyable>
 struct destroy_behaviour;
 
 template <typename PolicyHolder>

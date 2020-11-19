@@ -36,6 +36,8 @@ struct type_erased_destructor_policy
 
     static constexpr void destroy() noexcept {}
 
+    static constexpr void zero_destructor() noexcept {}
+
     template <typename V>
     static constexpr void check_constraints() noexcept
     {
@@ -64,6 +66,11 @@ struct destructor_holder
         return _destructor;
     }
 
+    void zero_destructor() noexcept 
+    {
+        _destructor = nullptr;
+    }
+
 private:
     bits::destroy_signature<E> _destructor{ nullptr };
 };
@@ -72,6 +79,7 @@ struct empty_destructor_holder
 {
     constexpr empty_destructor_holder(bits::swallow) noexcept {}
     constexpr empty_destructor_holder() noexcept = default;
+    static constexpr void zero_destructor() noexcept {}
 };
 
 template <typename Accessor, nullability N, rebindability R, exception_specification E, function_pointer_lookup F>
@@ -80,6 +88,11 @@ struct type_erased_destructor_policy<Accessor, triviality::non_trivial, N, R, E,
 {
     using base = std::conditional_t<F == function_pointer_lookup::inplace, destructor_holder<E>, empty_destructor_holder>;
     using base::base;
+
+    void zero_destructor() noexcept
+    {
+        base::zero_destructor();
+    }
 
     bits::destroy_signature<E> get_destructor() const
     {

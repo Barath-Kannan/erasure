@@ -23,14 +23,14 @@ struct call_signature;
 template <typename R, typename... Args, bool IsNoExcept>
 struct call_signature<R(Args...), IsNoExcept>
 {
-    using type = R (*)(std::byte*, Args...) noexcept(IsNoExcept);
+    using type = R (*)(const std::byte*, Args...) noexcept(IsNoExcept);
 
     template <typename F>
     static constexpr type generate() noexcept
     {
-        return [](std::byte * f, Args... args) noexcept(IsNoExcept)->R
+        return [](const std::byte* f, Args... args) noexcept(IsNoExcept)->R
         {
-            return reinterpret_cast<F&>(*f)(std::forward<Args>(args)...);
+            return reinterpret_cast<F&>(const_cast<std::byte&>(*f))(std::forward<Args>(args)...);
         };
     }
 };
